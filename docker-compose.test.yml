@@ -1,0 +1,60 @@
+version: '3.8'
+name: test_api
+
+networks:
+  nginx-ui-network:
+    driver: bridge
+    driver_opts:
+      com.docker.network.bridge.enable_ip_masquerade: 'false'
+    external: true
+
+volumes:
+  test_api_logs:
+    driver: local
+  test_api_temp:
+    driver: local
+
+services:
+  test_api:
+    # build:
+    #   context: .
+    #   dockerfile: Dockerfile
+    #   target: production
+    image: slaweekq/test_api:latest
+    hostname: test_api
+    container_name: test_api
+    restart: unless-stopped
+    ports:
+      # Пробросить порты на локальный сервер для nginx
+      - '127.0.0.1:5173:5173' # HTTP API, WebSocket и статические файлы клиента
+    environment:
+      - NODE_ENV=production
+      - PORT=5173
+    volumes:
+      # Монтирование логов для отладки
+      - ./logs:/app/logs
+      # Монтирование временных файлов (опционально)
+      - ./temp:/app/temp
+    networks:
+      - nginx-ui-network
+    healthcheck:
+      test: ['CMD', 'wget', '--no-verbose', '--tries=1', '--spider', 'http://localhost:5173/api/health']
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+    # Ограничения ресурсов
+    deploy:
+      resources:
+        limits:
+          cpus: '1.0'
+          memory: 2048M
+        reservations:
+          cpus: '0.25'
+          memory: 512M
+    # Логирование
+    logging:
+      driver: 'json-file'
+      options:
+        max-size: '10m'
+        max-file: '3'

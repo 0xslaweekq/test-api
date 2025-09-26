@@ -1,0 +1,206 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  body {
+    @apply bg-gray-100 text-gray-900 dark:bg-gray-900 dark:text-white night:bg-black night:text-gray-100;
+    transition:
+      background-color 0.2s ease,
+      color 0.2s ease;
+  }
+}
+
+@layer components {
+  .card {
+    @apply bg-white dark:bg-gray-800 night:bg-gray-900 rounded-lg shadow-md dark:shadow-xl border border-gray-200 dark:border-gray-700 night:border-gray-800 p-6;
+    transition: all 0.2s ease;
+  }
+
+  .btn {
+    @apply px-4 py-2 rounded-md font-medium transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-offset-2 dark:focus:ring-offset-gray-800;
+  }
+
+  .btn-primary {
+    @apply btn bg-blue-600 dark:bg-blue-700 night:bg-blue-800 text-white hover:bg-blue-700 dark:hover:bg-blue-600 night:hover:bg-blue-700 focus:ring-blue-500;
+  }
+
+  .btn-secondary {
+    @apply btn bg-gray-600 dark:bg-gray-700 night:bg-gray-800 text-white hover:bg-gray-700 dark:hover:bg-gray-600 night:hover:bg-gray-700 focus:ring-gray-500;
+  }
+
+  .btn-success {
+    @apply btn bg-green-600 dark:bg-green-700 night:bg-green-800 text-white hover:bg-green-700 dark:hover:bg-green-600 night:hover:bg-green-700 focus:ring-green-500;
+  }
+
+  .btn-warning {
+    @apply btn bg-yellow-600 dark:bg-yellow-700 night:bg-yellow-800 text-white hover:bg-yellow-700 dark:hover:bg-yellow-600 night:hover:bg-yellow-700 focus:ring-yellow-500;
+  }
+
+  .btn-error {
+    @apply btn bg-red-600 dark:bg-red-700 night:bg-red-800 text-white hover:bg-red-700 dark:hover:bg-red-600 night:hover:bg-red-700 focus:ring-red-500;
+  }
+
+  .btn-outline {
+    @apply btn border-2 border-gray-300 dark:border-gray-600 night:border-gray-700 text-gray-700 dark:text-gray-200 night:text-gray-100 hover:bg-gray-50 dark:hover:bg-gray-700 night:hover:bg-gray-800 focus:ring-gray-500;
+  }
+
+  .input {
+    @apply block w-full rounded-md border-2 border-gray-300 dark:border-gray-500 night:border-gray-600 bg-white dark:bg-gray-700 night:bg-gray-800 text-gray-900 dark:text-white night:text-gray-100 shadow-md focus:border-blue-500 focus:ring-2 focus:ring-blue-500 transition-all duration-200;
+    padding: 0.2rem 0.5rem;
+  }
+
+  .label {
+    @apply block text-sm font-medium text-gray-700 dark:text-gray-200 night:text-gray-100 mb-1;
+  }
+
+  .error-text {
+    @apply text-sm text-red-600 dark:text-red-400 night:text-red-300 mt-1;
+  }
+
+  .success-text {
+    @apply text-sm text-green-600 dark:text-green-400 night:text-green-300 mt-1;
+  }
+
+  .status-badge {
+    @apply inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium shadow-sm;
+  }
+
+  .status-preparing {
+    @apply status-badge bg-gray-100 dark:bg-gray-700 night:bg-gray-800 text-gray-800 dark:text-gray-200 night:text-gray-100;
+  }
+
+  .status-running {
+    @apply status-badge bg-yellow-100 dark:bg-yellow-900/30 night:bg-yellow-900/50 text-yellow-800 dark:text-yellow-200 night:text-yellow-100;
+  }
+
+  .status-completed {
+    @apply status-badge bg-green-100 dark:bg-green-900/30 night:bg-green-900/50 text-green-800 dark:text-green-200 night:text-green-100;
+  }
+
+  .status-error {
+    @apply status-badge bg-red-100 dark:bg-red-900/30 night:bg-red-900/50 text-red-800 dark:text-red-200 night:text-red-100;
+  }
+
+  .log-entry {
+    @apply px-3 py-2 text-sm font-mono border-l-4;
+  }
+
+  .log-info {
+    @apply log-entry border-blue-500 dark:border-blue-400 night:border-blue-400 bg-blue-50 dark:bg-blue-900/20 night:bg-blue-900/30 text-blue-800 dark:text-blue-100 night:text-blue-50;
+  }
+
+  .log-error {
+    @apply log-entry border-red-500 dark:border-red-400 night:border-red-400 bg-red-50 dark:bg-red-900/20 night:bg-red-900/30 text-red-800 dark:text-red-100 night:text-red-50;
+  }
+
+  .log-debug {
+    @apply log-entry border-gray-500 dark:border-gray-400 night:border-gray-400 bg-gray-100 dark:bg-gray-800 night:bg-gray-900 text-gray-800 dark:text-gray-100 night:text-gray-50;
+  }
+
+  .metric-card {
+    @apply card text-center bg-gradient-to-br from-white to-gray-100 dark:from-gray-800 dark:to-gray-900 night:from-gray-900 night:to-black;
+  }
+
+  .metric-card .metric-value {
+    @apply text-gray-900 dark:text-white night:text-gray-100;
+  }
+
+  .metric-card .metric-label {
+    @apply text-gray-600 dark:text-gray-300 night:text-gray-400;
+  }
+
+  .metric-value {
+    @apply text-2xl font-bold text-blue-600 dark:text-blue-400 night:text-blue-300;
+  }
+
+  .metric-label {
+    @apply text-sm text-gray-500 dark:text-gray-400 night:text-gray-300 mt-1;
+  }
+
+  /* Мобильные стили */
+  @media (max-width: 640px) {
+    .card {
+      @apply p-4;
+    }
+
+    .btn {
+      @apply px-3 py-2 text-sm;
+    }
+
+    .input {
+      @apply text-base; /* Предотвращает зум на iOS */
+    }
+  }
+}
+
+/* Анимации */
+@keyframes pulse-slow {
+  0%,
+  100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.7;
+  }
+}
+
+.animate-pulse-slow {
+  animation: pulse-slow 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+}
+
+/* Скроллбар */
+.custom-scrollbar {
+  scrollbar-width: thin;
+  scrollbar-color: #cbd5e1 #f1f5f9;
+}
+
+.dark .custom-scrollbar {
+  scrollbar-color: #4b5563 #1f2937;
+}
+
+.night .custom-scrollbar {
+  scrollbar-color: #374151 #0f0f0f;
+}
+
+.custom-scrollbar::-webkit-scrollbar {
+  width: 6px;
+}
+
+.custom-scrollbar::-webkit-scrollbar-track {
+  background: #f1f5f9;
+  border-radius: 3px;
+}
+
+.dark .custom-scrollbar::-webkit-scrollbar-track {
+  background: #1f2937;
+}
+
+.night .custom-scrollbar::-webkit-scrollbar-track {
+  background: #0f0f0f;
+}
+
+.custom-scrollbar::-webkit-scrollbar-thumb {
+  background: #cbd5e1;
+  border-radius: 3px;
+}
+
+.dark .custom-scrollbar::-webkit-scrollbar-thumb {
+  background: #4b5563;
+}
+
+.night .custom-scrollbar::-webkit-scrollbar-thumb {
+  background: #374151;
+}
+
+.custom-scrollbar::-webkit-scrollbar-thumb:hover {
+  background: #94a3b8;
+}
+
+.dark .custom-scrollbar::-webkit-scrollbar-thumb:hover {
+  background: #6b7280;
+}
+
+.night .custom-scrollbar::-webkit-scrollbar-thumb:hover {
+  background: #4b5563;
+}
