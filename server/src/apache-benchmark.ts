@@ -152,8 +152,14 @@ export class ApacheBenchmarkRunner {
       args.push('-k');
     }
 
-    // HTTP метод
-    if (config.method && config.method !== 'GET') {
+    // HTTP метод - используем -m только для методов, которые не имеют специальных параметров
+    // POST: используем -p (автоматически устанавливает POST)
+    // PUT: используем -u (автоматически устанавливает PUT)
+    // HEAD: используем -i
+    // Остальные методы (DELETE, PATCH и т.д.): используем -m
+    if (config.method === 'HEAD') {
+      args.push('-i');
+    } else if (config.method && config.method !== 'GET' && config.method !== 'POST' && config.method !== 'PUT') {
       args.push('-m', config.method);
     }
 
@@ -198,14 +204,24 @@ export class ApacheBenchmarkRunner {
 
     let dataFile: string | undefined;
 
-    // POST данные
-    if ((config.method === 'POST' || config.method === 'GET') && config.dataBody) {
+    // POST data
+    if (config.dataBody) {
       const transformedData = this.transformDataBody(config.dataBody, config.contentType);
-      dataFile = await this.createTempDataFile(transformedData, sessionId);
-      args.push('-p', dataFile);
 
-      if (config.contentType) {
-        args.push('-T', config.contentType);
+      if (config.method === 'POST') {
+        dataFile = await this.createTempDataFile(transformedData, sessionId);
+        args.push('-p', dataFile);
+
+        if (config.contentType) {
+          args.push('-T', config.contentType);
+        }
+      } else if (config.method === 'GET') {
+        // IMPORTANT: This is not a standard way, the server must support reading data from the header
+        args.push('-H', `X-Request-Body: ${encodeURIComponent(transformedData)}`);
+
+        if (config.contentType) {
+          args.push('-H', `X-Content-Type: ${config.contentType}`);
+        }
       }
     }
 
@@ -451,6 +467,13 @@ export class ApacheBenchmarkRunner {
     }
 
     onLog(LogLevel.info, 'Preparing to run Apache Benchmark...');
+
+    if (config.method === 'GET' && config.dataBody) {
+      onLog(
+        LogLevel.info,
+        '⚠️ WARNING: GET requests with body data are not standard HTTP. Data will be sent via X-Request-Body header instead of request body.',
+      );
+    }
 
     try {
       // Построение команды

@@ -15,7 +15,7 @@
     "subtitle": "HTTP server performance testing tool",
     "title": "Apache Benchmark Tester",
     "titleShort": "Apache Benchmark",
-    "version": "Apache Benchmark Tester v1.1.4 - Created for performance testing of HTTP servers"
+    "version": "Apache Benchmark Tester v1.2.0 - Created for performance testing of HTTP servers"
   },
   "common": {
     "cancel": "Cancel",

@@ -15,7 +15,7 @@
     "subtitle": "Инструмент нагрузочного тестирования API",
     "title": "Apache Benchmark Tester",
     "titleShort": "Apache Benchmark",
-    "version": "Apache Benchmark Tester v1.1.4 - Создан для нагрузочного тестирования HTTP серверов"
+    "version": "Apache Benchmark Tester v1.2.0 - Создан для нагрузочного тестирования HTTP серверов"
   },
   "common": {
     "cancel": "Отмена",
