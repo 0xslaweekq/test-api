@@ -1,26 +1,14 @@
 import { spawn } from 'child_process';
 import { promises as fs } from 'fs';
+import * as os from 'os';
 import * as path from 'path';
 import * as readline from 'readline';
 
 import { ABTestConfig, ABTestResult, LogLevel } from './types';
 
 export class ApacheBenchmarkRunner {
-  private tempDir = path.join(process.cwd(), 'temp');
   private activeProcesses = new Map<string, any>();
   private stoppedByUser = new Set<string>();
-
-  constructor() {
-    this.ensureTempDir();
-  }
-
-  private async ensureTempDir(): Promise<void> {
-    try {
-      await fs.mkdir(this.tempDir, { recursive: true });
-    } catch (error) {
-      console.error('Failed to create temp directory:', error);
-    }
-  }
 
   /**
    * Валидация конфигурации перед запуском теста
@@ -62,19 +50,92 @@ export class ApacheBenchmarkRunner {
   }
 
   /**
-   * Создание файлов для POST/PUT данных
+   * Transform data body based on Content-Type
    */
-  private async createDataFile(data: string, sessionId: string): Promise<string> {
-    const fileName = path.join(this.tempDir, `${sessionId}-data.txt`);
+  private transformDataBody(dataBody: any, contentType?: string): string {
+    let parsedData: any;
+
+    // If dataBody is a string, try to parse it as JSON or JavaScript object
+    if (typeof dataBody === 'string') {
+      try {
+        // Try to parse as JSON first
+        parsedData = JSON.parse(dataBody);
+      } catch {
+        try {
+          // If JSON parsing fails, try to evaluate as JavaScript object
+          // This handles cases where the string looks like a JS object literal
+          // eslint-disable-next-line no-eval
+          parsedData = eval(`(${dataBody})`);
+        } catch {
+          // If both fail, return the string as is
+          return dataBody;
+        }
+      }
+    } else {
+      parsedData = dataBody;
+    }
+
+    // If no content type specified, try to stringify
+    if (!contentType) {
+      return typeof parsedData === 'object' ? JSON.stringify(parsedData) : String(parsedData);
+    }
+
+    const normalizedContentType = contentType.toLowerCase();
+
+    // Handle application/x-www-form-urlencoded
+    if (normalizedContentType.includes('application/x-www-form-urlencoded')) {
+      const params = new URLSearchParams();
+      for (const [key, value] of Object.entries(parsedData)) {
+        params.append(key, String(value));
+      }
+
+      const result = params.toString();
+
+      return result;
+    }
+
+    // Handle application/json
+    if (normalizedContentType.includes('application/json')) {
+      return JSON.stringify(parsedData);
+    }
+
+    // Handle multipart/form-data
+    if (normalizedContentType.includes('multipart/form-data')) {
+      // For multipart, we need to keep it as JSON and let Apache Benchmark handle it
+      // or convert to a specific format if needed
+      return JSON.stringify(parsedData);
+    }
+
+    // Default: stringify if object, otherwise convert to string
+    return typeof parsedData === 'object' ? JSON.stringify(parsedData) : String(parsedData);
+  }
+
+  /**
+   * Create temporary data file in system temp directory
+   */
+  private async createTempDataFile(data: string, sessionId: string): Promise<string> {
+    const tempDir = os.tmpdir();
+    const fileName = path.join(tempDir, `ab-${sessionId}-${Date.now()}.txt`);
     await fs.writeFile(fileName, data, 'utf-8');
 
     return fileName;
   }
 
   /**
+   * Clean up temporary data file
+   */
+  private async cleanupTempDataFile(fileName: string): Promise<void> {
+    try {
+      await fs.unlink(fileName);
+    } catch (error) {
+      // Ignore errors when cleaning up
+    }
+  }
+
+  /**
    * Построение команды Apache Benchmark
    */
-  private async buildCommand(config: ABTestConfig, sessionId: string): Promise<string[]> {
+  private async buildCommand(config: ABTestConfig, sessionId: string): Promise<{ args: string[]; dataFile: string | undefined }> {
     const args = ['ab'];
 
     // Основные параметры
@@ -135,9 +196,12 @@ export class ApacheBenchmarkRunner {
       args.push('-X', config.proxyUrl);
     }
 
+    let dataFile: string | undefined;
+
     // POST данные
     if ((config.method === 'POST' || config.method === 'GET') && config.dataBody) {
-      const dataFile = await this.createDataFile(config.dataBody, sessionId);
+      const transformedData = this.transformDataBody(config.dataBody, config.contentType);
+      dataFile = await this.createTempDataFile(transformedData, sessionId);
       args.push('-p', dataFile);
 
       if (config.contentType) {
@@ -147,7 +211,8 @@ export class ApacheBenchmarkRunner {
 
     // PUT данные
     if (config.method === 'PUT' && config.dataBody) {
-      const dataFile = await this.createDataFile(config.dataBody, sessionId);
+      const transformedData = this.transformDataBody(config.dataBody, config.contentType);
+      dataFile = await this.createTempDataFile(transformedData, sessionId);
       args.push('-u', dataFile);
 
       if (config.contentType) {
@@ -158,7 +223,7 @@ export class ApacheBenchmarkRunner {
     // URL (последний параметр)
     args.push(config.url);
 
-    return args;
+    return { args, dataFile };
   }
 
   /**
@@ -389,7 +454,7 @@ export class ApacheBenchmarkRunner {
 
     try {
       // Построение команды
-      const args = await this.buildCommand(config, sessionId);
+      const { args, dataFile } = await this.buildCommand(config, sessionId);
       const verbosity = config.verbosity ?? 2;
       onLog(LogLevel.info, `Command: ${args.join(' ')}`);
 
@@ -555,8 +620,12 @@ export class ApacheBenchmarkRunner {
             this.stoppedByUser.delete(sessionId);
             this.activeProcesses.delete(sessionId);
             onLog(LogLevel.info, 'Test stopped by user');
-            // Очищаем временные файлы при остановке
-            this.cleanupTempFiles(sessionId).catch(() => {});
+
+            // Clean up temporary data file
+            if (dataFile) {
+              this.cleanupTempDataFile(dataFile).catch(() => {});
+            }
+
             // Возвращаем null чтобы указать что тест был остановлен пользователем
             resolve(null);
 
@@ -599,12 +668,14 @@ export class ApacheBenchmarkRunner {
             onLog(LogLevel.error, `Error parsing results: ${parseError}`);
             reject(parseError);
           } finally {
-            // Очищаем временные файлы
-            this.cleanupTempFiles(sessionId).catch(() => {});
+            // Clean up temporary data file
+            if (dataFile) {
+              this.cleanupTempDataFile(dataFile).catch(() => {});
+            }
           }
         });
 
-        abProcess.on('error', (error) => {
+        abProcess.on('error', async (error) => {
           clearInterval(progressInterval);
 
           // Закрываем readline interface
@@ -614,8 +685,12 @@ export class ApacheBenchmarkRunner {
           pendingJsonResponse = null;
 
           onLog(LogLevel.error, `Error process: ${error.message}`);
-          // Очищаем временные файлы при ошибке
-          this.cleanupTempFiles(sessionId).catch(() => {});
+
+          // Clean up temporary data file
+          if (dataFile) {
+            this.cleanupTempDataFile(dataFile).catch(() => {});
+          }
+
           reject(error);
         });
 
@@ -625,8 +700,6 @@ export class ApacheBenchmarkRunner {
     } catch (error) {
       onLog(LogLevel.error, `Error start: ${error}`);
       throw error;
-    } finally {
-      await this.cleanupTempFiles(sessionId);
     }
   }
 
@@ -657,18 +730,6 @@ export class ApacheBenchmarkRunner {
     }
 
     return false;
-  }
-
-  /**
-   * Очистка временных файлов
-   */
-  private async cleanupTempFiles(sessionId: string): Promise<void> {
-    try {
-      const dataFile = path.join(this.tempDir, `${sessionId}-data.txt`);
-      await fs.unlink(dataFile).catch(() => {}); // Игнорируем ошибки
-    } catch (error) {
-      console.error('Error cleaning up temp files:', error);
-    }
   }
 
   /**

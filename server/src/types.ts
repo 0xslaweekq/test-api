@@ -7,7 +7,7 @@ export interface ABTestConfig {
   method: 'GET' | 'POST' | 'PUT' | 'DELETE' | 'HEAD';
   headers?: Record<string, string>;
   cookies?: Record<string, string>;
-  dataBody?: string;
+  dataBody?: any; // Can be object or string, will be transformed based on contentType
   contentType?: string;
   timeout?: number;
   verbosity?: number;
