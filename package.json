@@ -1,6 +1,6 @@
 {
   "name": "apache-benchmark-tester",
-  "version": "1.1.3",
+  "version": "1.1.4",
   "private": true,
   "description": "Apache Benchmark testing tool with web interface",
   "keywords": [
